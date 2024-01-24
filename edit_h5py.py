@@ -38,14 +38,15 @@ def read_dataset(dataset):
 
         # 遍历每个demo
         for demo_name in demo_names:
-            # 生成新的demo名称，添加编号
-            print(dataset['data'][demo_name][:])
+            data_names = list(dataset['data'][demo_name].keys())
+            for data_name in data_names:
+                print(np.asarray(dataset['data'][demo_name][data_name]))
 
 
-def merge_datasets(datasets):
+def merge_datasets(src_datasets, dest_dataset):
     # 创建新的合并数据集文件
-    with h5py.File('merged_dataset.h5', 'w') as f_dest:
-        first_dataset = datasets[0]
+    with h5py.File(dest_dataset, 'w') as f_dest:
+        first_dataset = src_datasets[0]
         with h5py.File(first_dataset, 'r') as first_src:
             # 创建目标文件中的 'data' 组，并复制属性等信息
             data_group = f_dest.create_group('data')
@@ -53,7 +54,7 @@ def merge_datasets(datasets):
 
         data_count = 1  # 记录合并后的 demo 编号
         # 遍历每个数据集
-        for dataset_path in datasets:
+        for dataset_path in src_datasets:
             with h5py.File(dataset_path, 'r') as f_src:
                 # 获取当前数据集的 demo 名称列表
                 demo_names = list(f_src['data'].keys())
@@ -72,7 +73,7 @@ def merge_datasets(datasets):
                         for src_data_key in list(f_src[f'data/{demo_name}'].keys()):
                             f_src.copy(f_src[f'data/{demo_name}/{src_data_key}'], data_group[new_demo_name])
 
-    print(f'数据集已成功合并并重新编号,共{data_count}条demonstrations,保存在 merged_dataset.h5 中')
+    print(f'数据集已成功合并并重新编号,共{data_count-1}条demonstrations,保存在 merged_dataset.h5 中')
 
 
 
@@ -81,7 +82,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--option", type=str, help="option to execute on the dataset file")
     parser.add_argument("--dataset", type=str, help="base dataset to read or modify")
-    parser.add_argument("--datasets", type=str, nargs='+', help="base dataset to merge")
+    parser.add_argument("--src_datasets", type=str, nargs='+', help="source datasets to merge from")
+    parser.add_argument("--dest_dataset", type=str, help="destination dataset to merge into")
     parser.add_argument("--robot", type=str, default="Panda", help="robot to use")
     parser.add_argument("--gripper_types", type=str, default="PandaGripper", help="gripper type to use")
     parser.add_argument("--env", type=str, default="Coffee_D0", help="environment to use")
@@ -100,4 +102,4 @@ if __name__ == "__main__":
         read_dataset(args.dataset)
 
     elif args.option == "merge":
-        merge_datasets(args.datasets)
+        merge_datasets(args.src_datasets, args.dest_dataset)
